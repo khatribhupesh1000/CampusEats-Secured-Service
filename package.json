@@ -1,0 +1,16 @@
+{
+  "name": "campuseats-secured-catalogue",
+  "version": "1.0.0",
+  "description": "CampusEats Catalogue secured with JWT authentication, role-based authorization, and IDOR protection (CS543 Tutorial 9 & Lab).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^18.0.10",
+    "express": "^4.22.3",
+    "jsonwebtoken": "^9.0.3"
+  }
+}

@@ -1,0 +1,48 @@
+=============================================================
+  CampusEats Secured API -- Automated Security Verification  
+  CS543 Tutorial 9 & Assignment 9B Transcript
+  Timestamp: 2026-11-10T13:27:17.768Z
+=============================================================
+
+
+[1] Authentication & 401 Unauthorized Checks
+  ✔ PASS GET /items without token -> 401 Unauthorized
+  ✔ PASS 401 body returns error: "invalid or missing token"
+  ✔ PASS GET /items with bad token -> 401 Unauthorized
+  ✔ PASS POST /login with wrong password -> 401 Unauthorized
+  ✔ PASS Bad login body returns error: "bad login"
+
+[2] Login & JWT Minting (Bcrypt Check)
+  ✔ PASS POST /login as Asha (customer) -> 200 OK
+  ✔ PASS Asha receives signed JWT string
+  ✔ PASS POST /login as Rahul (customer 2) -> 200 OK
+  ✔ PASS POST /login as MealHub (restaurant) -> 200 OK
+  ✔ PASS POST /login as Admin -> 200 OK
+
+[3] Catalogue & Role-Based Access Control (RBAC)
+  ✔ PASS GET /items with Asha token -> 200 OK
+  ✔ PASS GET /items returns dish catalogue
+  ✔ PASS POST /items by customer Asha -> 403 Forbidden
+  ✔ PASS 403 body returns error: "forbidden"
+  ✔ PASS POST /items by restaurant MealHub -> 201 Created
+  ✔ PASS 201 response includes created dish
+  ✔ PASS POST /items by admin -> 201 Created
+  ✔ PASS POST /items with missing name -> 422 Unprocessable Entity
+
+[4] Object-Level Access Control & IDOR Prevention
+  ✔ PASS GET /orders/101 by owner (Asha) -> 200 OK
+  ✔ PASS Order #101 customerId is 1 (Asha)
+  ✔ PASS GET /orders/101 by different customer (Rahul) -> 403 Forbidden (IDOR PREVENTED)
+  ✔ PASS Error message explains object ownership check
+  ✔ PASS GET /orders/101 by Admin -> 200 OK
+  ✔ PASS GET /orders/101 by Restaurant -> 200 OK
+  ✔ PASS POST /orders as Asha -> 201 Created
+  ✔ PASS New order is securely stamped with customerId = 1
+  ✔ PASS GET /orders as Asha -> 200 OK
+  ✔ PASS GET /orders filters strictly to logged-in customer's own orders
+  ✔ PASS PATCH /orders/101/status by restaurant -> 200 OK
+  ✔ PASS PATCH /orders/101/status by customer -> 403 Forbidden
+
+=============================================================
+  Tests Complete: 30 Passed, 0 Failed (100%)
+=============================================================

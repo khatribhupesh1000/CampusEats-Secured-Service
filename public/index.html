@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CampusEats Secured Service · CS543</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge-tag">CS543 · Web Services · Tutorial 9 & Lab</span>
+      <h1>CampusEats Secured Service</h1>
+      <p class="sub">
+        JWT Authentication &bull; Role-Based Authorization &bull; IDOR Prevention &bull; Bcrypt Hashing
+      </p>
+    </header>
+
+    <!-- SECTION 1: AUTHENTICATION / IDENTITY -->
+    <section class="card card-auth">
+      <h2>
+        <span>1. Identity & Session (Authentication)</span>
+        <span id="roleBadge" class="role-badge role-guest">GUEST (NOT LOGGED IN)</span>
+      </h2>
+
+      <p style="font-size: 0.9rem; color: #475569;">
+        Click a seeded user below to instantly log in and acquire a signed JWT, or enter custom credentials:
+      </p>
+
+      <div class="quick-logins">
+        <button type="button" class="quick-btn" onclick="quickLogin('asha@campus.edu', 'customer123')">
+          👤 Asha (Customer 1)
+        </button>
+        <button type="button" class="quick-btn" onclick="quickLogin('rahul@campus.edu', 'rahul123')">
+          👤 Rahul (Customer 2)
+        </button>
+        <button type="button" class="quick-btn" onclick="quickLogin('mealhub@campus.edu', 'resto123')">
+          🍴 MealHub (Restaurant)
+        </button>
+        <button type="button" class="quick-btn" onclick="quickLogin('admin@campus.edu', 'admin123')">
+          🛡️ Admin (Superuser)
+        </button>
+      </div>
+
+      <form id="loginForm" class="form-row">
+        <input id="loginEmail" type="email" placeholder="Email (e.g. asha@campus.edu)" required>
+        <input id="loginPassword" type="password" placeholder="Password" required>
+        <button type="submit">Log In</button>
+        <button type="button" class="btn-secondary" onclick="logout()">Log Out</button>
+      </form>
+
+      <div id="authAlert"></div>
+
+      <div id="tokenContainer" style="display: none; margin-top: 0.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong style="font-size: 0.82rem; color: #475569;">Active JSON Web Token (JWT):</strong>
+          <button type="button" class="quick-btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="toggleTokenView()">
+            Toggle Decoded Payload
+          </button>
+        </div>
+        <div id="rawToken" class="token-box"></div>
+        <div id="decodedToken" class="token-decoded" style="display: none;"></div>
+      </div>
+    </section>
+
+    <!-- GRID LAYOUT FOR MENU & ADD FORM -->
+    <div class="grid-2">
+      <!-- SECTION 2: CATALOGUE / ITEMS -->
+      <section class="card card-catalogue">
+        <h2>
+          <span>2. Catalogue (Menu)</span>
+          <button type="button" class="quick-btn" style="font-size: 0.75rem;" onclick="loadItems()">Refresh</button>
+        </h2>
+        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.75rem;">
+          <code>GET /items</code> &bull; Requires <strong>auth</strong> (any logged-in user).
+        </p>
+
+        <div id="itemsContainer">
+          <div class="alert alert-warning">Please log in above to fetch the menu (demonstrating 401 guard).</div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: ADD DISH (RBAC CHECK) -->
+      <section class="card card-form">
+        <h2>3. Add Dish (Role Guard)</h2>
+        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.75rem;">
+          <code>POST /items</code> &bull; Requires <strong>restaurant</strong> or <strong>admin</strong>.
+        </p>
+
+        <form id="addDishForm">
+          <div class="form-row">
+            <input id="dishName" placeholder="Dish name (e.g. Butter Naan)" required>
+            <input id="dishPrice" type="number" placeholder="Price (₹)" required min="1">
+          </div>
+          <button type="submit" class="btn-accent">Add Dish to Menu</button>
+        </form>
+
+        <div id="addDishFeedback"></div>
+
+        <div class="alert alert-info" style="margin-top: 1rem;">
+          <strong>RBAC Test:</strong> If logged in as <em>Customer</em>, submitting this form triggers
+          <span class="status-code-badge status-403">403 Forbidden</span>!
+          Only <em>Restaurant</em> or <em>Admin</em> can add dishes.
+        </div>
+      </section>
+    </div>
+
+    <!-- SECTION 4: ORDERS & OBJECT-LEVEL ACCESS (IDOR PROTECTION) -->
+    <section class="card card-orders">
+      <h2>
+        <span>4. Orders & Object-Level Access Control (IDOR Protection)</span>
+        <button type="button" class="quick-btn" style="font-size: 0.75rem;" onclick="loadOrders()">Refresh Orders</button>
+      </h2>
+      <p style="font-size: 0.85rem; color: #475569; margin-bottom: 0.75rem;">
+        <code>GET /orders</code> &amp; <code>GET /orders/:id</code> &bull;
+        <strong>Object-Level Rule:</strong> A Customer can ONLY view their own orders!
+        Restaurant and Admin can view all orders.
+      </p>
+
+      <!-- Interactive IDOR Vulnerability Tester -->
+      <div style="background: #fdf7fe; border: 1px dashed #8e44ad; border-radius: 8px; padding: 0.8rem; margin-bottom: 1rem;">
+        <strong style="font-size: 0.85rem; color: #6c3483;">🧪 Live IDOR Protection Tester:</strong>
+        <p style="font-size: 0.8rem; color: #555; margin: 0.25rem 0 0.5rem;">
+          Order #101 belongs to <strong>Asha (Customer 1)</strong>. Order #102 belongs to <strong>Rahul (Customer 2)</strong>.
+          Try fetching Order #102 with the current token to test whether unauthorized cross-user reading is blocked:
+        </p>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="quick-btn" onclick="testOrderAccess(101)">Inspect Order #101 (Asha)</button>
+          <button type="button" class="quick-btn" onclick="testOrderAccess(102)">Inspect Order #102 (Rahul)</button>
+          <span id="idorResult" style="font-size: 0.8rem; font-weight: 600;"></span>
+        </div>
+      </div>
+
+      <div id="ordersContainer">
+        <div style="font-size: 0.85rem; color: #64748b;">Log in to view orders.</div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: SECURITY STATUS CODE REFERENCE -->
+    <section class="card card-info">
+      <h2>5. Security Checklist &amp; Status Code Architecture</h2>
+      <table class="table-mini">
+        <thead>
+          <tr>
+            <th>Status Code</th>
+            <th>Meaning</th>
+            <th>CampusEats Guard &amp; Condition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="status-code-badge status-200">200 OK</span></td>
+            <td>Success</td>
+            <td>Valid token presented, authorized role, request succeeded.</td>
+          </tr>
+          <tr>
+            <td><span class="status-code-badge status-201">201 Created</span></td>
+            <td>Resource Created</td>
+            <td>Dish added by restaurant/admin, or order successfully placed.</td>
+          </tr>
+          <tr>
+            <td><span class="status-code-badge status-401">401 Unauthorized</span></td>
+            <td>"Who are you?"</td>
+            <td>Missing or tampered Bearer token in header, or invalid password on /login.</td>
+          </tr>
+          <tr>
+            <td><span class="status-code-badge status-403">403 Forbidden</span></td>
+            <td>"I know you, but no"</td>
+            <td>Customer trying to POST /items (RBAC), or Customer trying to view someone else's order (IDOR).</td>
+          </tr>
+          <tr>
+            <td><span class="status-code-badge status-422">422 Unprocessable</span></td>
+            <td>Validation Error</td>
+            <td>Missing required dish name or invalid payload parameters.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
